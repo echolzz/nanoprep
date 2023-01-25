@@ -384,7 +384,7 @@ class VoltageClamp(Protocol):
         
         _, t_start = t.lap()
         current_array = []
-        sourcemeter.source_voltage = set_voltage + p.pipette_offset # set the voltage level relative to the pipette offset
+        p.sourcemeter.source_voltage = set_voltage + p.pipette_offset # set the voltage level relative to the pipette offset
 
         while True:
             lap_time, total_time = t.check()
