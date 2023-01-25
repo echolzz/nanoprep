@@ -359,3 +359,53 @@ class CBDRampAndGrowToDimension(Protocol):
                 pulse_voltage=10,  # pulse voltage
                 state=11,  # state for pulse application
             )
+
+class VoltageClamp(Protocol):
+    name = 'Voltage clamp'
+    
+    @staticmethod()
+    def run(p):
+        t = timer()
+        
+        set_voltage = 1 # Volt
+        duration = 10 # Second
+        
+        discard_time = 0.75 # Second. data is discarded within the first discard_time period to avoid capacitance effect
+        
+        p.log.info("Voltage clamp protocol")
+        # make sure the parent timer is started
+        if t.running():
+            _, start_time = t.lap()
+        else:
+            t.start()
+            start_time = 0
+
+        interval = 1./sample_rate
+        
+        _, t_start = t.lap()
+        current_array = []
+        sourcemeter.source_voltage = set_voltage + p.pipette_offset # set the voltage level relative to the pipette offset
+
+        while True:
+            lap_time, total_time = t.check()
+            if lap_time > duration:
+                break
+            current = sourcemeter.current # read out the voltage level
+
+            # record the current negelecting a short time after voltage change to eliminate the capacitance effect.
+            if lap_time > discard_time:
+                current_array.append(current)
+
+            emitter.record(
+                time=start_time + lap_time,
+                voltage=set_voltage + p.pipette_offset,
+                current=current,
+                state=np.nan,
+            ) # broadcasting to datafile
+
+            if report_progress:
+                emitter.progress(0, duration, lap_time)
+
+            # check for process stop
+            if aborter.should_abort():
+                break
