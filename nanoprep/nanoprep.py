@@ -46,7 +46,7 @@ from pymeasure.experiment import BooleanParameter, ListParameter
 from pymeasure.experiment import Results
 from pymeasure.display.Qt import QtGui
 from pymeasure.display.windows import ManagedWindow
-
+from pymeasure.adapters import PrologixAdapter
 from utilities.aborter import Aborter
 from utilities.emitter import Emitter, SustainedEmitter
 from utilities.protocol import load_config, Parameters
@@ -164,19 +164,25 @@ class NanoprepProcedure(Procedure):
     # this function runs first when the procedure is called
     def startup(self):
         log.info(f"Connecting to Keithley 2400 on GPIB::{self.gpib_address}")
-        self.sourcemeter = Keithley2400(f"GPIB::{self.gpib_address}")
+        self.adapter = PrologixAdapter("COM3", self.gpib_address)
+        self.sourcemeter = Keithley2400(self.adapter)
         log.info("Refresh Keithley 2400")
+        print("Refresh Keithley 2400")
         self.sourcemeter.reset()  # refresh Keithley
         log.info("Enable front terminals")
+        print("Enable front terminals")
         self.sourcemeter.use_front_terminals()  # enable front and disable rear
         log.info("Configure system to output voltage and measure current")
+        print("Configure system to output voltage and measure current")
         self.sourcemeter.measure_current()  # setup to measure current
         self.sourcemeter.source_mode = "voltage"  # output voltage mode
         log.info("Set compliance current (max current before system force stop)")
+        print("Set compliance current (max current before system force stop)")
         self.sourcemeter.compliance_current = (
             self.compliance_current
         )  # max current before stopping
         log.info("Enable source output and wait for tool to update settings")
+        print("Enable source output and wait for tool to update settings")
         self.sourcemeter.source_enabled = True
         time.sleep(0.1)  # wait to give instrument time to react
 
@@ -201,8 +207,9 @@ class NanoprepProcedure(Procedure):
     # safely shut down instrument
     def shutdown(self):
         log.info("Shut down Keithley 2400")
-        self.sourcemeter.reset()
+        # self.sourcemeter.reset()
         self.sourcemeter.shutdown()
+        self.adapter.close()
 
 
 class MainWindow(ManagedWindow):

@@ -363,7 +363,7 @@ class CBDRampAndGrowToDimension(Protocol):
 class VoltageClamp(Protocol):
     name = 'Voltage clamp'
     
-    @staticmethod()
+    @staticmethod
     def run(p):
         t = timer()
         
